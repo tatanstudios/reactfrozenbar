@@ -225,7 +225,7 @@ export default function MesasConfig() {
                         </ul>
                     </section>
                     <section className="space-y-3">
-                        <p className="text-sm text-gray-600">A qué área va la comanda de cada categoría. Lo que ya está hecho y se entrega directo (pan de vitrina, postres de vitrina, bebidas embotelladas) va en «Sin comanda»: solo sale el ticket de venta.</p>
+                        <p className="text-sm text-gray-600">A qué área va la comanda de cada categoría. Lo que ya está hecho y se entrega directo (sándwiches, postres de vitrina, bebidas embotelladas) va en «Sin comanda»: solo sale el ticket de venta.</p>
                         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
                             <table className="w-full text-sm">
                                 <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500"><tr><th className="px-4 py-3">Categoría</th><th className="px-4 py-3">Se prepara en</th></tr></thead>

@@ -206,7 +206,7 @@ export default function Produccion() {
                 </div>
             )}
 
-            <PageHeader title="Producción" subtitle="Lo que se horneó hoy: descuenta ingredientes y suma producto terminado"
+            <PageHeader title="Producción" subtitle="Lo que se preparó hoy: descuenta ingredientes y suma producto terminado"
                 actions={<>
                     <button type="button" onClick={() => navigate('/produccion/recetas')} className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Recetas</button>
                     <button type="button" onClick={() => navigate('/produccion/resumen')} className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Resumen</button>

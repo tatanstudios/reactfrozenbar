@@ -29,7 +29,7 @@ export default function Recetas() {
     const [recetas, setRecetas] = useState<RecetaInterface[] | null>(null);
     const [catalogo, setCatalogo] = useState<CatalogoProduccionInterface | null>(null);
     const [buscar, setBuscar] = useState('');
-    // '' = todas; venta = se descuenta al vender; produccion = se hornea por tandas
+    // '' = todas; venta = se descuenta al vender; produccion = se prepara por tandas
     const [uso, setUso] = useState<'' | 'venta' | 'produccion'>('');
     const visibles = useMemo(() => recetas?.filter(r => !uso || (uso === 'venta' ? r.uso === 'venta' : r.uso !== 'venta')) ?? null, [recetas, uso]);
     const [detalle, setDetalle] = useState<RecetaInterface | null>(null);
@@ -90,7 +90,7 @@ export default function Recetas() {
     // Lo que no lleva existencia propia no se produce: su receta se descuenta al venderlo
     const deVenta = !!producto && !producto.controla_stock;
     // Ingredientes: todo lo que lleva inventario (sin inventario no hay nada que descontar).
-    // Primero materias primas y empaques; después horneados y reventa (pan del desayuno, lata del combo)
+    // Primero materias primas y empaques; después preparados y reventa (sándwich del desayuno, lata del combo)
     const insumosSugeridos = useMemo(() => {
         const t = sinTildes(busquedaInsumo.trim());
         if (!t) return [];
@@ -288,13 +288,13 @@ export default function Recetas() {
                         </div>
                         {verAyudaVersion && (
                             <div className="space-y-2 rounded-lg bg-blue-50 px-4 py-3 text-xs leading-relaxed text-blue-900">
-                                <p>El sistema guarda el historial de cada receta para que el costo de lo que ya se horneó no cambie después.</p>
+                                <p>El sistema guarda el historial de cada receta para que el costo de lo que ya se preparó no cambie después.</p>
                                 <p><b>Al crearla:</b> la receta queda como versión 1.</p>
                                 <p><b>Al editarla sin haberla usado:</b> se corrige ahí mismo y sigue siendo la misma versión.</p>
                                 <p><b>Al editarla después de usarla:</b> se crea la versión siguiente (2, 3…) y la anterior queda en el historial, con lo que se gastó y su costo de entonces.</p>
                                 <div className="rounded-md border border-blue-100 bg-white/70 px-3 py-2">
-                                    <p className="font-semibold">Ejemplo: Pan francés</p>
-                                    <p>Ayer horneaste 100 panes con la versión 1 (10 lb de harina). Hoy cambias la receta a 11 lb: se crea la versión 2 y lo que hornees desde ahora usa 11 lb. La producción de ayer sigue mostrando 10 lb y su costo de ayer.</p>
+                                    <p className="font-semibold">Ejemplo: Masa de crepa</p>
+                                    <p>Ayer preparaste 100 crepas con la versión 1 (10 lb de harina). Hoy cambias la receta a 11 lb: se crea la versión 2 y lo que prepares desde ahora usa 11 lb. La producción de ayer sigue mostrando 10 lb y su costo de ayer.</p>
                                 </div>
                                 <p><b>Volver atrás:</b> si el cambio salió mal, abre la receta y en Versiones toca «Usar esta versión» en la anterior. Solo una versión está activa a la vez.</p>
                             </div>

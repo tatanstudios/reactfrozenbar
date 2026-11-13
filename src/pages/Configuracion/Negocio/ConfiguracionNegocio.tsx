@@ -67,8 +67,8 @@ function Ejemplo({ titulo, children }: { titulo: string; children: ReactNode }) 
 const AYUDA_STOCK_NEGATIVO = (
     <>
         <p>Decide qué pasa cuando el sistema dice que ya no queda un producto pero alguien lo quiere vender, o sacar del inventario como merma o consumo interno.</p>
-        <Ejemplo titulo="Ejemplo: el sistema marca 0 conchas pero en la vitrina hay 3">
-            <p><b>Apagado:</b> la concha sale «Agotado» en la venta y en las mesas y no se puede agregar. Primero hay que registrar la producción o ajustar el inventario.</p>
+        <Ejemplo titulo="Ejemplo: el sistema marca 0 sándwiches de jamón pero en la vitrina hay 3">
+            <p><b>Apagado:</b> el sándwich sale «Agotado» en la venta y en las mesas y no se puede agregar. Primero hay que registrar la producción o ajustar el inventario.</p>
             <p><b>Encendido:</b> se vende igual y la existencia queda en −1, −2, −3. El sistema avisa, y el negativo se corrige después con la producción o un ajuste.</p>
         </Ejemplo>
         <Ejemplo titulo="Ejemplo: un plato con receta (desayuno con 2 huevos y pan)">
@@ -93,8 +93,8 @@ const AYUDA_AVISO_CAMBIO = (
 const AYUDA_POR_COMPRAR = (
     <>
         <p>Al cerrar el turno, el ticket termina con la lista <b>POR COMPRAR</b>: los productos que quedaron en su stock mínimo o por debajo.</p>
-        <Ejemplo titulo="Ejemplo: la Concha quedó en 0 y su mínimo es 20">
-            <p><b>Encendido:</b> el ticket de cierre imprime «Concha · hay 0 u / mín 20» al final.</p>
+        <Ejemplo titulo="Ejemplo: el Vaso 16 oz quedó en 0 y su mínimo es 20">
+            <p><b>Encendido:</b> el ticket de cierre imprime «Vaso 16 oz · hay 0 u / mín 20» al final.</p>
             <p><b>Apagado:</b> el ticket de cierre no imprime esa sección.</p>
         </Ejemplo>
         <p><b>La lista no se pierde:</b> sigue en la pantalla de cierre de caja y en Inventario › Control de existencias, y la campanita sigue avisando.</p>

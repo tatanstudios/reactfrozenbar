@@ -18,12 +18,12 @@ const USOS_CLIENTE: { titulo: string; texto: string; ejemplos: string[] }[] = [
     {
         titulo: '1. Vender fiado (a crédito)',
         texto: 'Al revés que con los proveedores: aquí el cliente te debe a ti. Con límite y días de crédito se cobra con la forma de pago Crédito, el ticket sale para la firma, la deuda queda en Cuentas por cobrar y el sistema no le deja pasar su límite.',
-        ejemplos: ['Un restaurante que se lleva 200 panes diarios y paga cada viernes', 'Una oficina o escuela que pide pan y café para reuniones y paga a fin de mes', 'Un vecino de confianza que paga cada quincena'],
+        ejemplos: ['Una cafetería que se lleva 50 bobbas diarias y paga cada viernes', 'Una oficina o escuela que pide bobbas y desayunos para reuniones y paga a fin de mes', 'Un vecino de confianza que paga cada quincena'],
     },
     {
         titulo: '2. Pedidos especiales (encargos)',
         texto: 'En Pedidos especiales queda su teléfono para avisarle o confirmar, el anticipo y la fecha de entrega. En su ficha se ven todos los encargos que ha hecho.',
-        ejemplos: ['Pastel de cumpleaños para el sábado con $10 de anticipo', '500 panes para una boda o un velorio'],
+        ejemplos: ['Catering de 30 bobbas para el sábado con $10 de anticipo', '100 crepas para un evento de la escuela'],
     },
     {
         titulo: '3. Ticket a su nombre',
@@ -40,7 +40,7 @@ const USOS_CLIENTE: { titulo: string; texto: string; ejemplos: string[] }[] = [
 function AyudaClientes() {
     return (
         <div className="mb-4 space-y-3 rounded-xl bg-blue-50 p-4 text-sm leading-relaxed text-blue-900">
-            <p>Los clientes son <b>opcionales</b>. Al que entra, compra 5 panes y se va, se le vende normal en Venta rápida sin elegir a nadie (el ticket sale como «Consumidor Final»). Registra solo a quien te sirve tenerlo guardado:</p>
+            <p>Los clientes son <b>opcionales</b>. Al que entra, compra 2 bobbas y se va, se le vende normal en Venta rápida sin elegir a nadie (el ticket sale como «Consumidor Final»). Registra solo a quien te sirve tenerlo guardado:</p>
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                 {USOS_CLIENTE.map(u => (
                     <div key={u.titulo} className="rounded-lg border border-blue-100 bg-white px-3 py-2.5">

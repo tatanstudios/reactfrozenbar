@@ -137,7 +137,7 @@ export default function Mermas() {
                 descripcion={anulando ? `${cantidad(anulando.cantidad, anulando.unidad)} de ${anulando.producto} vuelven al inventario.` : ''}
                 textoConfirmar="Anular merma" isLoading={guardando} onClose={() => setAnulando(null)} onConfirm={anular} />
 
-            <PageHeader title="Mermas y cierre del día" subtitle="Pan que no se vendió, producto quemado o dañado: sale del inventario a su costo" />
+            <PageHeader title="Mermas y cierre del día" subtitle="Producto que no se vendió, quemado o dañado: sale del inventario a su costo" />
 
             {puedeRegistrar && (
                 <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 space-y-4">

@@ -93,7 +93,7 @@ export default function ProductoFormulario({
                     <h2 className="text-lg font-semibold text-gray-800">Información general</h2>
 
                     <FormField label="Nombre" required>
-                        <input type="text" value={form.nombre} maxLength={300} placeholder="Ej. Pan francés"
+                        <input type="text" value={form.nombre} maxLength={300} placeholder="Ej. Crepa de Nutella"
                             onChange={(e) => onChange("nombre", e.target.value)} className={inputClass} />
                     </FormField>
 
@@ -165,13 +165,13 @@ export default function ProductoFormulario({
                             titulo="Consumo interno" descripcion="Cena del personal o cortesía: sale a $0.00, no entra a caja y solo descuenta su receta" />
                         {form.se_vende && (
                             <Interruptor checked={form.imprime_comanda} onChange={(v) => onChange("imprime_comanda", v)}
-                                titulo="Imprime comanda" descripcion="Apágalo si se entrega directo (coca en lata, pan de vitrina): no manda comanda a cocina ni a barra aunque su categoría tenga área" />
+                                titulo="Imprime comanda" descripcion="Apágalo si se entrega directo (coca en lata, postre de vitrina): no manda comanda a cocina ni a barra aunque su categoría tenga área" />
                         )}
                     </div>
                     {!form.controla_stock && (
                         <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
                             Sin inventario propio: si le creas una receta en Producción → Recetas, al venderlo se descuentan sus insumos
-                            (limonada → limones, servicio de mañanitas → pastel y gorro).
+                            (limonada → limones, combo de cumpleaños → crepa y vela).
                         </p>
                     )}
                 </div>
@@ -264,7 +264,7 @@ export default function ProductoFormulario({
                                     Sin categoría: elige una arriba para que aparezca en su pestaña del punto de venta.
                                   </p>
                                 : <p className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600">
-                                    Sin comanda: se entrega directo y solo sale el ticket de venta (pan, postres de vitrina, bebidas embotelladas).
+                                    Sin comanda: se entrega directo y solo sale el ticket de venta (sándwiches, postres de vitrina, bebidas embotelladas).
                                     Si hay que prepararlo, asigna un área a su categoría en Configuración › Mesas y cocina › Áreas.
                                   </p>;
                     })()}

@@ -77,7 +77,7 @@ export const imprimirComandasNavegador = (comandas: ComandaInterface[], copia = 
 
 /**
  * Comandas de una venta de mostrador, una por área, con la misma forma que las de
- * mesa para imprimirlas igual. Lo que no tiene área (pan de vitrina) se entrega
+ * mesa para imprimirlas igual. Lo que no tiene área (postre de vitrina) se entrega
  * directo: solo lleva el ticket de venta.
  */
 export const comandasDeMostrador = (lineas: LineaCarritoInterface[], numero: string, usuario: string | null): ComandaInterface[] => {
