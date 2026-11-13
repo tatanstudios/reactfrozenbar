@@ -25,7 +25,7 @@ function SignInForm() {
   return (
       <div className="min-h-screen flex flex-col items-center justify-start bg-[#262022] pt-10">
 
-        <img src="/images/logo/logoe.jpg" alt="Logo" className="h-32 mb-6"/>
+        <img src="/images/logo/logoe.jpg" alt="Logo" className="h-56 mb-6"/>
 
         <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-2xl">
           <div className="mb-6 text-center">

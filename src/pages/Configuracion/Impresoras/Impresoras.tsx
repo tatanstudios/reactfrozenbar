@@ -47,7 +47,7 @@ export default function Impresoras() {
                         <h2 className="px-6 pt-6 pb-3 text-lg font-semibold">{isEditing ? "Editar impresora" : "Nueva impresora"}</h2>
                         <div className="overflow-y-auto px-6 space-y-4">
                             <FormField label="Nombre" required>
-                                <input type="text" value={form.alias} maxLength={200} autoFocus placeholder="Ej. Mostrador, Horno"
+                                <input type="text" value={form.alias} maxLength={200} autoFocus placeholder="Ej. Mostrador, Barra"
                                     onChange={(e) => set("alias", e.target.value)} className={inputClass} />
                             </FormField>
 
