@@ -1,0 +1,757 @@
+// CODIGO
+
+import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import {ImpresoraFormInterface, InformacionAdministradorResponseInterface} from "../types/interfaces.ts";
+import { clearAuth, getToken } from "../utils/auth.ts";
+import { pedirAutorizacion } from "../utils/autorizacion.ts";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+export const STORAGE_URL = import.meta.env.VITE_STORAGE_URL || "http://127.0.0.1:8000/storage/archivos/";
+
+// Crear instancia de axios
+export const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+  },
+});
+
+// Agrega el token guardado si la llamada no trae uno (las funciones nuevas ya no lo reciben)
+api.interceptors.request.use((config) => {
+  const token = getToken();
+  if (token && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// La acción necesita autorización del administrador: se pide su PIN y se repite la misma petición
+const reintentarConAutorizacion = async (error: AxiosError<{ message?: string; invalido?: boolean }> & { config: InternalAxiosRequestConfig }) => {
+  const data = error.response?.data;
+  const codigo = await pedirAutorizacion({ mensaje: data?.message ?? "Esta acción necesita autorización", invalido: !!data?.invalido });
+  if (!codigo) return Promise.reject(error);
+
+  const config = error.config;
+  if (config.data instanceof FormData) {
+    config.data.set("autorizacion", codigo);
+  } else {
+    const cuerpo = typeof config.data === "string" && config.data ? JSON.parse(config.data) : (config.data ?? {});
+    config.data = { ...cuerpo, autorizacion: codigo };
+  }
+  return api.request(config);
+};
+
+// Token vencido, revocado o usuario desactivado → limpiar sesión y volver al login
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
+    const url = String(error.config?.url ?? "");
+
+    if (status === 403 && error.response?.data?.status === "SIN_PERMISO" && error.config && error.config.method !== "get") {
+      return reintentarConAutorizacion(error);
+    }
+
+    if (status === 401 && !url.includes("/login") && getToken()) {
+      const data = error.response?.data as { status?: string; message?: string } | undefined;
+      sessionStorage.setItem(
+        "aviso_login",
+        data?.status === "USER_INACTIVE" && data.message
+          ? data.message
+          : "Tu sesión expiró. Inicia sesión de nuevo."
+      );
+      clearAuth();
+      window.location.replace("/");
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+
+
+// ************************  SECCION - LOGIN ************************************************
+// ==========================================================================================
+
+
+// INICIO DE SESION
+export const loginApi = async (email: string, password: string) => {
+  const { data } = await api.post("/login", {
+    email,
+    password,
+    device_name: "Web Application",
+  });
+  return data;
+};
+
+
+// CERRAR SESION
+export const logout = async (token: string) => {
+  const { data } = await api.post(
+      "/logout",
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+  );
+  return data;
+};
+
+// SOLICITAR RESET CONTRASEÑA
+export const sendResetPasswordEmail = async (email: string) => {
+  const { data } = await api.post("/admin/enviar/correo/password", {
+    email,
+  });
+
+  return data;
+};
+
+
+// VALIDAR TOKEN DE RESET
+export const validateResetToken = async (
+    token: string,
+    email: string
+) => {
+    const { data } = await api.post(
+        "/validate-reset-token",
+        {
+            token,
+            email,
+        }
+    );
+
+    return data;
+};
+
+// CONFIRMAR / ACTUALIZAR CONTRASEÑA
+export const confirmResetPassword = async (
+    token: string,
+    email: string,
+    password: string,
+    passwordConfirmation: string
+) => {
+    const { data } = await api.post(
+        "/reset-password-confirm",
+        {
+            token,
+            email,
+            password,
+            password_confirmation: passwordConfirmation,
+        }
+    );
+
+    return data;
+};
+
+
+// Datos de la sesión actual (con el token guardado), incluido si ya tiene PIN y desde cuándo
+export const getMiCuenta = async () =>
+  (await api.get("/me")).data as { nombre: string; email: string; roles: string[]; tiene_pin: boolean; pin_actualizado_at: string | null };
+
+// Cada quien cambia su PIN de autorización (con su contraseña actual)
+export const cambiarMiPin = async (datos: { password_actual: string; pin: string; pin_confirmation: string }) =>
+  (await api.put("/me/pin", datos)).data as { success: number; message: string; pin_actualizado_at: string };
+
+// Quita el bloqueo de pantalla con el PIN propio (o la contraseña si aún no tiene PIN)
+export const desbloquearPantalla = async (codigo: string) =>
+  (await api.post("/me/desbloquear", { codigo })).data as { success: number };
+
+// El administrador borra el PIN de quien lo olvidó
+export const resetearPinUsuario = async (id: number) =>
+  (await api.delete(`/admin/usuarios/${id}/pin`)).data as { success: number; message: string };
+
+export const getMe = async (token: string) => {
+  const { data } = await api.get("/me", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return data;
+};
+
+
+
+
+// ************************  SECCION - ROLES Y PERMISOS ***************************************************************************
+// ================================================================================================================================
+
+
+// ROLES - SOLO LISTADO
+export const getRolesTable = async (token: string) => {
+  const { data } = await api.get("/admin/roles/tabla", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return data;
+};
+
+// BORRAR UN ROL COMPLETO
+export const borrarRolGlobal = async (token: string, idrol: number) => {
+    const { data } = await api.post(
+        "/admin/roles/borrar-global",
+        { idrol },
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    );
+
+    return data;
+};
+
+
+// OBTENER TODOS LOS ROLES
+export const getRolePermissionsTable = async (
+    token: string,
+    idrol: number
+) => {
+    const { data } = await api.get(
+        `/admin/roles/permisos/tabla/${idrol}`,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    );
+
+    return data;
+};
+
+// BORRAR UN PERMISO DEL ROL
+export const borrarPermisoRol = async (
+    token: string,
+    idrol: number,
+    idpermiso: number
+) => {
+    const { data } = await api.post(
+        "/admin/roles/permiso/borrar",
+        {
+            idrol,
+            idpermiso,
+        },
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    );
+
+    return data;
+};
+
+// CREAR UN ROL
+export const crearNuevoRol = async (
+  token: string,
+  nombre: string
+) => {
+  const { data } = await api.post(
+    `/admin/roles/nuevo-rol`,
+    { nombre },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return data;
+};
+
+
+// AGREGAR UN PERMISO AL ROL
+export const agregarPermisoRol = async (
+  token: string,
+  idrol: number,
+  idpermiso: number
+) => {
+  const { data } = await api.post(
+    "/admin/roles/permiso/agregar",
+    {
+      idrol,
+      idpermiso,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    }
+  );
+
+  return data;
+};
+
+// LISTADO DE PERMISOS
+export const getPermisosTable = async (token: string) => {
+  const { data } = await api.get(
+    `/admin/roles/permisos-todos/tabla`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    }
+  );
+
+  return data;
+};
+
+
+// BORRAR UN PERMISO GLOBAL
+export const borrarPermisoGlobal = async (token: string, idpermiso: number) => {
+  const { data } = await api.post(
+    "/admin/permisos/extra-borrar",
+    { idpermiso },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return data;
+};
+
+// CREAR UN NUEVO PERMISO
+export const crearNuevoPermiso = async (token: string, nombre: string, descripcion?: string) => {
+  const { data } = await api.post(
+    "/admin/permisos/extra-nuevo",
+    { nombre , descripcion },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return data;
+};
+
+// OBTENER USUARIOS
+export const getUsuariosTable = async (token: string) => {
+  const { data } = await api.get(
+    `/admin/usuarios/tabla`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    }
+  );
+
+  return data;
+};
+
+
+// CREAR UN USUARIO - ROLES
+export const crearUsuario = async (
+  token: string,
+  datos: {
+    nombre: string;
+    email: string;
+    password: string;
+    rol: string;
+  }
+) => {
+  const { data } = await api.post(
+    "/admin/permisos/nuevo-usuario",
+    datos,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return data;
+};
+
+
+
+// ************************  SECCION - UNIDAD DE MEDIDA ***************************************************************************
+// ================================================================================================================================
+
+
+// LISTADO DE UNIDAD DE MEDIDA
+export const getUnidadMedidaTable = async (token: string) => {
+    const { data } = await api.get(
+        `/admin/unidadmedida/tabla`,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json",
+            },
+        }
+    );
+
+    return data;
+};
+
+// CREAR UNIDAD DE MEDIDA
+export const crearUnidadMedida = async (
+    token: string,
+    payload: { nombre: string; abreviatura?: string; tipo?: string; factor_base?: string | number }
+) => {
+    const { data } = await api.post(
+        `/admin/unidadmedida/nuevo`,
+        payload,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json",
+            },
+        }
+    );
+
+    return data;
+};
+
+// BORRAR UNIDAD DE MEDIDA (solo si nada la usa; si no, el servidor responde 422)
+export const borrarUnidadMedida = async (token: string, id: number) => {
+    const { data } = await api.delete(`/admin/unidadmedida/${id}`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    });
+    return data;
+};
+
+// ACTUALIZAR UNIDAD DE MEDIDA
+export const actualizarUnidadMedida = async (
+    token: string,
+    id: number,
+    payload: {
+        nombre: string;
+        estado: boolean;
+        abreviatura?: string;
+        tipo?: string;
+        factor_base?: string | number;
+    }
+) => {
+    const { data } = await api.put(
+        `/admin/unidadmedida/actualizar/${id}`,
+        payload,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json",
+            },
+        }
+    );
+
+    return data;
+};
+
+
+
+// ************************  SECCION - CREAR CATEGORIAS ***************************************************************************
+// ================================================================================================================================
+
+// LISTADO DE CATEGORIAS
+export const getCategoriasTable = async (token: string) => {
+    const { data } = await api.get(
+        `/admin/categorias/tabla`,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json",
+            },
+        }
+    );
+
+    return data;
+};
+
+// CREAR CATEGORIA
+export const crearCategoria = async (
+    token: string,
+    payload: { nombre: string }
+) => {
+    const { data } = await api.post(
+        `/admin/categorias/nuevo`,
+        payload,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json",
+            },
+        }
+    );
+
+    return data;
+};
+
+// BORRAR CATEGORIA (solo si ningún producto la usa; si no, el servidor responde 422)
+export const borrarCategoria = async (token: string, id: number) => {
+    const { data } = await api.delete(`/admin/categorias/${id}`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    });
+    return data;
+};
+
+// ACTUALIZAR CATEGORIA
+export const actualizarCategoria = async (
+    token: string,
+    id: number,
+    payload: {
+        nombre: string;
+        estado: boolean;
+    }
+) => {
+    const { data } = await api.put(
+        `/admin/categorias/actualizar/${id}`,
+        payload,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json",
+            },
+        }
+    );
+
+    return data;
+};
+
+
+
+
+// INFORMACION DE ADMINISTRADOR
+export const informacionAdministrador = async (
+    token: string,
+    id: number
+): Promise<InformacionAdministradorResponseInterface> => {
+    try {
+        const { data } = await api.post(
+            "/admin/informacion/administrador",
+            { id },
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        // Validación del backend
+        if (data.success !== 1) {
+            throw new Error("No se pudo obtener la información del administrador");
+        }
+
+        return data;
+    } catch (error: any) {
+        console.error("Error informacionAdministrador:", error);
+        throw error.response?.data?.message || "Error al obtener la información";
+    }
+};
+
+
+
+// ************************  SECCION - ADMINISTRADOR - PERFIL ***************************************************************************
+// ================================================================================================================================
+
+
+// ACTUALIZAR ADMINISTRADOR
+export const actualizarAdministrador = async (
+    token: string,
+    id: number,
+    datos: {
+        nombre: string;
+        email: string;
+        password?: string;
+        rol: string;
+        estado: boolean;
+    }
+) => {
+    try {
+        const { data } = await api.put(
+            `/admin/actualizar/administrador/${id}`,
+            datos,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        if (data.success !== 1) {
+            throw new Error(data.message || "Error al actualizar");
+        }
+
+        return data;
+    } catch (error: any) {
+        if (error.response?.status === 422) {
+            throw error.response.data.errors; // para mostrar en inputs
+        }
+        throw error.response?.data?.message || "Error del servidor";
+    }
+};
+
+
+
+
+// ************************  SECCION - IMPRESORAS  ******************
+// =================================================================
+
+export const getImpresorasTable = async (token: string) => {
+    const { data } = await api.get('/admin/impresora/index', {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+    return data;
+};
+
+export const crearImpresora = async (token: string, payload: ImpresoraFormInterface) => {
+    const { data } = await api.post('/admin/impresora/store', payload, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+    return data;
+};
+
+export const actualizarImpresora = async (token: string, id: number, payload: ImpresoraFormInterface) => {
+    const { data } = await api.post(`/admin/impresora/${id}/update`, payload, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+    return data;
+};
+
+export const eliminarImpresora = async (token: string, id: number) => {
+    const { data } = await api.delete(`/admin/impresora/${id}/destroy`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+    return data;
+};
+
+export const testImpresora = async (token: string, id: number) => {
+    const { data } = await api.post(`/admin/impresora/${id}/test`, {}, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+    return data;
+};
+
+
+// ************************  SECCION - PRODUCTOS ***************************************************************************
+// ================================================================================================================================
+
+// BORRAR PRODUCTO (solo si nunca se usó)
+export const borrarProducto = async (token: string, id: number) => {
+    const { data } = await api.delete(`/productos/${id}`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    });
+    return data;
+};
+
+// LISTADO DE PRODUCTOS
+export const getProductosTable = async (token: string) => {
+    const { data } = await api.get(
+        `/productos/tabla`,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/json",
+            },
+        }
+    );
+
+    return data;
+};
+
+export const registrarProducto = async (
+    token: string,
+    formData: FormData
+) => {
+    const { data } = await api.post(
+        `/productos/registro`,
+        formData,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "multipart/form-data",
+                Accept: "application/json",
+            },
+        }
+    );
+
+    return data;
+};
+
+
+// OBTENER UN PRODUCTO (para editar)
+export const getProducto = async (token: string, id: number) => {
+    const { data } = await api.get(`/productos/editar/${id}`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+        },
+    });
+
+    return data;
+};
+
+// ACTUALIZAR PRODUCTO (con imagen) → multipart/form-data
+export const actualizarProducto = async (
+    token: string,
+    id: number,
+    formData: FormData
+) => {
+    const { data } = await api.post(`/productos/actualizar/${id}`, formData, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+            Accept: "application/json",
+        },
+    });
+
+    return data;
+};
+
+
+
+
+// ************************  SECCION - INVENTARIO  ******************
+// =================================================================
+
+export const getInventarioStock = async (token: string) => {
+    const { data } = await api.get('/inventario/stock', {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+    return data;
+};
+
+export const getInventarioEntradas = async (token: string) => {
+    const { data } = await api.get('/inventario/entradas', {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+    return data;
+};
+
+export const getInventarioEntrada = async (token: string, id: number) => {
+    const { data } = await api.get(`/inventario/entradas/${id}`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+    return data;
+};
+
+export const registrarEntradaInventario = async (
+    token: string,
+    payload: {
+        fecha: string;
+        tipo: string;
+        descripcion?: string;
+        items: { producto_id: number; cantidad: number; costo_unitario?: number }[];
+    }
+) => {
+    const { data } = await api.post('/inventario/entradas/registrar', payload, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    });
+    return data;
+};
+
+
+
+
+
+
+
+export default api;
