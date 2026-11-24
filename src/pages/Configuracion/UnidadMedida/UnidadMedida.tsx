@@ -1,4 +1,11 @@
+import { useState } from "react";
 import DataTable from "react-data-table-component";
+import toast from "react-hot-toast";
+
+import { useAuth } from "../../../context/AuthContext";
+import { borrarVentasPrueba } from "../../../services/api";
+import { getToken } from "../../../utils/auth";
+import { mensajeError } from "../../../utils/formato";
 
 import LoadingModal from "../../../components/Loading/LoadingModal";
 import ConfirmDeleteModal from "../../../components/modal/ConfirmDeleteModal";
@@ -28,6 +35,34 @@ export default function UnidadMedidaConfig() {
         isDeleting,
         handleDelete,
     } = useUnidadMedida();
+
+    // TEMPORAL (pruebas con el cliente): botón «Borrar Ventas». Quitar junto con su ruta en la API.
+    const { hasRole } = useAuth();
+    const [borrarVentasAbierto, setBorrarVentasAbierto] = useState(false);
+    const [textoConfirmacion, setTextoConfirmacion] = useState("");
+    const [borrandoVentas, setBorrandoVentas] = useState(false);
+
+    const cerrarBorrarVentas = () => {
+        setBorrarVentasAbierto(false);
+        setTextoConfirmacion("");
+    };
+
+    const handleBorrarVentas = async () => {
+        const token = getToken();
+        if (!token) return;
+        setBorrandoVentas(true);
+        try {
+            const r = await borrarVentasPrueba(token);
+            toast.success(r.message, { duration: 6000 });
+            cerrarBorrarVentas();
+            // La caja abierta y los contadores quedan en memoria: se recarga para que todo empiece de cero
+            setTimeout(() => window.location.reload(), 1500);
+        } catch (e) {
+            toast.error(mensajeError(e, "No se pudieron borrar las ventas"));
+        } finally {
+            setBorrandoVentas(false);
+        }
+    };
 
     const columns = [
         {
@@ -133,6 +168,47 @@ export default function UnidadMedidaConfig() {
                 itemName={borrando?.nombre ?? ""}
             />
 
+            {borrarVentasAbierto && (
+                <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/50 p-4">
+                    <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                        <h2 className="text-lg font-semibold text-red-700">Borrar todas las ventas</h2>
+                        <p className="mt-2 text-sm text-gray-600">
+                            Se borran <strong>todas</strong> las ventas, devoluciones, cuentas por cobrar, cuentas de mesa,
+                            comandas, pedidos, todos los turnos y cortes de caja, compras (con cuentas por pagar y pagos a
+                            proveedores), producción, mermas y gastos. El inventario se ajusta como si no hubieran pasado.
+                            Productos, recetas, clientes y proveedores se conservan.
+                        </p>
+                        <p className="mt-2 text-sm font-medium text-red-600">No se puede deshacer.</p>
+                        <label className="mt-4 block text-sm text-gray-700">
+                            Escribe <strong>BORRAR</strong> para confirmar
+                            <input
+                                type="text"
+                                value={textoConfirmacion}
+                                onChange={(e) => setTextoConfirmacion(e.target.value)}
+                                className="mt-1 h-[42px] w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-red-400 focus:outline-none"
+                                autoFocus
+                            />
+                        </label>
+                        <div className="mt-5 flex justify-end gap-2">
+                            <button
+                                onClick={cerrarBorrarVentas}
+                                disabled={borrandoVentas}
+                                className="rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleBorrarVentas}
+                                disabled={textoConfirmacion !== "BORRAR" || borrandoVentas}
+                                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {borrandoVentas ? "Borrando..." : "Borrar Ventas"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="p-6">
                 <div className="mb-6">
                     <div className="mb-4 flex items-center gap-3">
@@ -146,6 +222,15 @@ export default function UnidadMedidaConfig() {
                             <h1 className="text-2xl font-semibold text-gray-800">Unidades de Medida</h1>
                             <p className="text-sm text-gray-500">{filteredData.length} unidades en total</p>
                         </div>
+                        {/* TEMPORAL (pruebas con el cliente) */}
+                        {hasRole("admin") && (
+                            <button
+                                onClick={() => setBorrarVentasAbierto(true)}
+                                className="ml-auto px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition"
+                            >
+                                Borrar Ventas
+                            </button>
+                        )}
                     </div>
                 </div>
 

@@ -420,6 +420,14 @@ export const borrarUnidadMedida = async (token: string, id: number) => {
     return data;
 };
 
+// TEMPORAL (pruebas con el cliente): borra todas las ventas, cortes y turnos de caja. Solo admin.
+export const borrarVentasPrueba = async (token: string) => {
+    const { data } = await api.post(`/admin/pruebas/borrar-ventas`, { confirmacion: "BORRAR" }, {
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    });
+    return data as { message: string };
+};
+
 // ACTUALIZAR UNIDAD DE MEDIDA
 export const actualizarUnidadMedida = async (
     token: string,
